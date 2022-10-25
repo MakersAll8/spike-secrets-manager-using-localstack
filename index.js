@@ -1,11 +1,13 @@
 const express = require("express");
 const app = express();
-const port = 3000;
+const port = 3500;
 
 const {
   CreateSecretCommand,
   GetSecretValueCommand,
   SecretsManagerClient,
+  DeleteSecretCommand,
+  UpdateSecretCommand,
 } = require("@aws-sdk/client-secrets-manager");
 
 // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-secrets-manager/interfaces/secretsmanagerclientconfig.html#endpoint
@@ -40,6 +42,25 @@ app.get("/get/:arn", async (req, res) => {
     SecretId: req.params.arn, // ARN or unique name
   };
   const command = new GetSecretValueCommand(params);
+  const data = await client.send(command); // data.SecretString
+  res.send({ data });
+});
+
+app.get("/update/:arn/:secret", async (req, res) => {
+  const params = {
+    SecretId: req.params.arn, // ARN or unique name
+    SecretString: JSON.stringify({ secret: req.params.secret }),
+  };
+  const command = new UpdateSecretCommand(params);
+  const data = await client.send(command); // data.SecretString
+  res.send({ data });
+});
+
+app.get("/delete/:arn", async (req, res) => {
+  const params = {
+    SecretId: req.params.arn, // ARN or unique name
+  };
+  const command = new DeleteSecretCommand(params);
   const data = await client.send(command); // data.SecretString
   res.send({ data });
 });
