@@ -1,6 +1,8 @@
 const express = require("express");
 const app = express();
 const port = 3500;
+const fs = require("fs");
+const axios = require("axios");
 
 const {
   CreateSecretCommand,
@@ -9,13 +11,55 @@ const {
   DeleteSecretCommand,
   UpdateSecretCommand,
 } = require("@aws-sdk/client-secrets-manager");
+// https://github.com/awsdocs/aws-doc-sdk-examples/blob/main/javascriptv3/example_code/s3/src/s3_get_presignedURL.js
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const {
+  S3Client,
+  GetObjectCommand,
+  CreateBucketCommand,
+  PutObjectCommand,
+} = require("@aws-sdk/client-s3");
 
 // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-secrets-manager/interfaces/secretsmanagerclientconfig.html#endpoint
 // const client = new SecretsManagerClient({ region: "ap-southeast-2" });
 const client = new SecretsManagerClient({ endpoint: "http://127.0.0.1:4566" });
+const s3Client = new S3Client({
+  endpoint: "http://127.0.0.1:4566",
+  region: "us-east-1",
+});
+
+// const command = new CreateBucketCommand({ Bucket: "test" });
+// s3Client.send(command);
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
+});
+
+app.get("/create/file", async (req, res) => {
+  // https://github.com/awsdocs/aws-doc-sdk-examples/blob/main/javascriptv3/example_code/s3/src/s3_create_and_upload_objects.js
+  // const writeStream = fs.createWriteStream();
+  const buff = Buffer.from("hello s3", "utf8");
+  const _command = new PutObjectCommand({
+    Bucket: "test",
+    Key: "output",
+    Body: buff.toString(),
+  });
+
+  res.send("created file!");
+  const data = await s3Client.send(_command);
+  console.log(data);
+});
+
+app.get("/get/file", async (req, res) => {
+  const command = new GetObjectCommand({
+    Bucket: "test",
+    Key: "output",
+  });
+  const signedUrl = await getSignedUrl(s3Client, command, {
+    expiresIn: 3600,
+  });
+  console.log(signedUrl);
+  res.send(signedUrl);
 });
 
 app.get("/long", (req, res) => {
